@@ -121,7 +121,7 @@
                 layerProcessor(OL_HELPERS.createKMLLayer(url));
             },
             'gml': function (resource, proxyUrl, proxyServiceUrl, layerProcessor) {
-                var url = proxyUrl || resource.url;
+		var url = proxyUrl || resource.url;
                 layerProcessor(OL_HELPERS.createGMLLayer(url));
             },
             'geojson': function (resource, proxyUrl, proxyServiceUrl, layerProcessor) {
@@ -129,6 +129,7 @@
                 layerProcessor(OL_HELPERS.createGeoJSONLayer(url));
             },
             'wfs': function(resource, proxyUrl, proxyServiceUrl, layerProcessor) {
+		console.log(resource);
                 var parsedUrl = resource.url.split('#');
                 var url = proxyServiceUrl || parsedUrl[0];
 
