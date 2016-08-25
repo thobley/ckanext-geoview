@@ -121,7 +121,7 @@
                 layerProcessor(OL_HELPERS.createKMLLayer(url));
             },
             'gml': function (resource, proxyUrl, proxyServiceUrl, layerProcessor) {
-		var url = proxyUrl || resource.url;
+                var url = proxyUrl || resource.url;
                 layerProcessor(OL_HELPERS.createGMLLayer(url));
             },
             'geojson': function (resource, proxyUrl, proxyServiceUrl, layerProcessor) {
@@ -129,7 +129,6 @@
                 layerProcessor(OL_HELPERS.createGeoJSONLayer(url));
             },
             'wfs': function(resource, proxyUrl, proxyServiceUrl, layerProcessor) {
-		console.log(resource);
                 var parsedUrl = resource.url.split('#');
                 var url = proxyServiceUrl || parsedUrl[0];
 
@@ -139,7 +138,11 @@
             'wms' : function(resource, proxyUrl, proxyServiceUrl, layerProcessor) {
                 var parsedUrl = resource.url.split('#');
                 // use the original URL for the getMap, as there's no need for a proxy for image requests
-                var getMapUrl = parsedUrl[0].split('?')[0]; // remove query if any
+                var getMapUrl = parsedUrl[0];
+				if (getMapUrl.indexOf('?')){
+					var getMapUrl = getMapUrl.split('?')[0]; // revmoved query
+				}
+
 
                 var url = proxyServiceUrl || getMapUrl;
 
@@ -262,7 +265,55 @@
                         wrapDateLine: true,
                         attribution: mapConfig.attribution
                     });
-                } else {
+                } else if (mapConfig.type == 'vicmapapi512'){
+					var matrixids = new Array(19);
+					for (var i = 0; i <= 18; ++i) {
+						matrixids[i] = "EPSG:3857_WEB_MERCATOR:" + i;
+					}
+					var url = "http://api.maps.vic.gov.au/geowebcacheWM/service/wmts";
+					var  baseMapLayer = new OpenLayers.Layer.WMTS({
+                        name: "Vicmap API",
+						//sphericalMercator: true,
+                        url: url,
+                        layer: "WEB_MERCATOR",
+                        div:"map",
+                        matrixSet: "EPSG:3857_WEB_MERCATOR",
+                       // ServerResolutions: [
+					    ServerResolutions: [
+                            156543.03392804097, 
+                            78271.51696402048, 
+                            39135.75848201024, 
+                            19567.87924100510000, 
+                            9783.93962050256000, 
+                            4891.96981025128000, 
+                            2445.98490512564000, 
+                            1222.99245256282000, 
+                            611.49622628141000, 
+                            305.74811314070500, 
+                            152.87405657035200, 
+                            76.43702828517620, 
+                            38.21851414258810, 
+                            19.10925707129400, 
+                            9.55462853564703, 
+                            4.77731426782351, 
+                            2.388657133911758, 
+                            1.194328566955879, 
+                            0.5971642834779395,  
+                        ],
+                        //tileSize: 512,
+                        matrixIds: matrixids,
+                        format: "image/png",
+                        style: "_null",
+                        opacity: 1,
+                        isBaseLayer: true,
+						//tileOrigin: [20037508.34,-20037508.34],
+                        //maxExtent: [15194443.512656,-5019271.93739,18053007.294871,-3575661.6116429],
+                        maxExtent: new OpenLayers.Bounds(-20037508.34,-20037508.34,20037508.34,20037508.34),
+						attribution: "Vicmap API © 2015 State Government of Victoria | <a href='http://api.maps.vic.gov.au/vicmapapi/Copyright.jsp' target='_blank' style='color:#4BABFA;'>Copyright and Disclaimer</a> " 
+					});
+					//baseMapLayer.projection = baseMapLayer.projection;
+					baseMapLayer.setTileSize(new OpenLayers.Size(512,512));
+				} else {
                     // MapQuest OpenStreetMap base map
                     if (isHttps) {
                         var urls = ['//otile1-s.mqcdn.com/tiles/1.0.0/map/${z}/${x}/${y}.png',
@@ -298,8 +349,14 @@
                 ckan.geoview.gapi_key = this.options.gapi_key;
 
                 // Choose base map based on CKAN wide config
+				var clearBaseLayer = new OpenLayers.Layer.OSM("None", this.options.site_url + "img/blank.gif", {isBaseLayer: true, attribution: ''});
                 var baseMapLayer = this._commonBaseLayer(this.options.map_config);
-                var clearBaseLayer = new OpenLayers.Layer.OSM("None", "/img/blank.gif", {isBaseLayer: true, attribution: ''});
+				baseMapLayer.projection = clearBaseLayer.projection;
+				baseMapLayer.tileOrigin = clearBaseLayer.tileOrigin;
+				
+				console.log(baseMapLayer);
+				console.log(clearBaseLayer);
+                //var clearBaseLayer = new OpenLayers.Layer.OSM("None", this.options.site_url + "img/blank.gif", {isBaseLayer: true, attribution: ''});
 
                 var mapDiv = $("<div></div>").attr("id", "map").addClass("map")
                 var info = $("<div></div>").attr("id", "info")
@@ -314,27 +371,32 @@
                     placement: "right",
                     html: true
                 });
+				
+				
+				
 
-                var eventListeners
+                var eventListeners;
+				console.log(this.options);
+				var that = this;
                 if ( (ckan.geoview && 'feature_hoveron' in ckan.geoview) ? ckan.geoview['feature_hoveron'] : this.options.ol_config.default_feature_hoveron)
                     eventListeners = {
                     featureover: function (e) {
                         e.feature.renderIntent = "select";
                         e.feature.layer.drawFeature(e.feature);
                         var pixel = event.xy
-                        info.css({
-                            left: (pixel.x + 10) + 'px',
+                      /* info.css({
+                           left: (pixel.x + 10) + 'px',
                             top: (pixel.y - 15) + 'px'
                         });
                         info.currentFeature = e.feature
                         info.tooltip('hide')
                             .empty()
                         var tooltip = "<div>" + (e.feature.data.name || e.feature.fid) + "</div><table>";
-                        for (var prop in e.feature.data) tooltip += "<tr><td>" + prop + "</td><td>" + e.feature.data[prop] + "</td></tr></div>"
+                         for (var prop in e.feature.data) tooltip += "<tr><td>" + prop + "</td><td>" + e.feature.data[prop] + "</td></tr></div>"
                         tooltip += "</table>"
                         info.attr('data-original-title', tooltip)
                             .tooltip('fixTitle')
-                            .tooltip('show');
+                            .tooltip('show'); */
                     },
                     featureout: function (e) {
                         e.feature.renderIntent = "default"
@@ -346,21 +408,63 @@
 
                     },
                     featureclick: function (e) {
-                        //log("Map says: " + e.feature.id + " clicked on " + e.feature.layer.name);
+					//console.log("Map says: " + e.feature.id + " clicked on " + e.feature.layer.name +"|" + e.feature);
+						console.log(that.map);
+						//console.log(e.feature);
+						//console.log(that.map.getLonLatFromPixel(event.xy));
+						if(that.map.popups[0]){
+							that.map.popups[0].destroy();
+						}
+						var feature = e.feature;
+						var html = function(feature){
+							//var heading = "<h2>"+feature.fid+"</h2>";
+							console.log(that.map);
+							var atts;
+							if(feature.attributes){
+								atts = "<table><th colspan='2'>"+feature.layer.title+"</th>"
+								
+								for (var att in feature.attributes){
+									console.log(feature.attributes[att]);
+									atts = atts + "<tr><td class='left'>"+att+"</td> <td class='right'>"+feature.attributes[att]+"</td></tr>"
+								}
+								atts = atts+"</table>"
+							}
+							console.log(atts);
+							return "<div style='font-family: Arial'>"+atts+"</div>";
+						}
+						 var popup = new OpenLayers.Popup.FramedCloud("pops", 
+							that.map.getLonLatFromPixel(event.xy),
+							null,
+							true,
+							null
+						);
+						popup.autoSize = false,
+					    //popup.setSize = new OpenLayers.Size(400,800);
+						popup.fixedRelativePosition = true;
+						popup.closeOnMove = true;
+						e.popup = popup;
+						that.map.addPopup(popup);
+						popup.setContentHTML(html(feature));
+						
                     }
                 }
+				//this.map.addEventListener = eventListeners;
+                OpenLayers.ImgPath = this.options.site_url + 'js/vendor/openlayers2/img/';
 
-                this.map = new OpenLayers.Map(
-                    {
-                        div: "map",
-                        theme: "/js/vendor/openlayers2/theme/default/style.css",
-                        layers: [baseMapLayer, clearBaseLayer],
-                        maxExtent: baseMapLayer.getMaxExtent(),
-                        eventListeners: eventListeners
-                        //projection: OL_HELPERS.Mercator, // this is needed for WMS layers (most only accept 3857), but causes WFS to fail
-                    });
+                
 
                 layerSwitcher = new OpenLayers.Control.CKANLayerSwitcher()
+				
+				this.map = new OpenLayers.Map(
+                    {
+                        div: "map",
+                        theme: this.options.site_url + "js/vendor/openlayers2/theme/default/style.css",
+                        layers: [baseMapLayer, clearBaseLayer],
+                        maxExtent: baseMapLayer.getMaxExtent(),
+                        eventListeners: eventListeners,
+						//restrictedExtent: new OpenLayers.Bounds(15663808,-4760130,16712820,-4017007)
+                        //projection: OL_HELPERS.Mercator, // this is needed for WMS layers (most only accept 3857), but causes WFS to fail
+                    });
 
                 this.map.addControl(layerSwitcher);
 
@@ -369,6 +473,8 @@
 
                 var bbox = (fragMap.bbox && new OpenLayers.Bounds(fragMap.bbox.split(',')).transform(OL_HELPERS.EPSG4326, this.map.getProjectionObject()));
                 if (bbox) this.map.zoomToExtent(bbox);
+				
+				//var tMap = this.map;
 
                 var proxyUrl = this.options.proxy_url;
                 var proxyServiceUrl = this.options.proxy_service_url;
