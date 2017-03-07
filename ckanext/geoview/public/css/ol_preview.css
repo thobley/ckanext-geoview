@@ -70,7 +70,7 @@
      background-color: #ededed;
  }
 
- #data-preview .olControlLayerSwitcher .dataLayersDiv {
+ #data-preview .o-previewlControlLayerSwitcher .dataLayersDiv {
      max-height: 350px; /* this must be coherent with the map height */
      overflow-y: auto;
  }
@@ -83,3 +83,144 @@
  #data-preview .dataLayersDiv .labelSpan {
      font-size: 80%;
  }
+
+/* ----EXTRA STYLING FOR THE POPUP DEWLP----  */
+
+
+#data-preview .olFramedCloudPopupContent table {
+     font-family: Arial;
+	 font-size: 70%;
+	 max-width: 100%;
+ }
+
+#data-preview .olFramedCloudPopupContent .left {
+     text-align: left;
+     max-width: 100px; 
+     overflow-wrap: break-word;	 
+ }
+
+#data-preview .olFramedCloudPopupContent .right {
+     text-align: right;	 
+     max-width: 84px;
+     overflow-wrap: break-word;
+ }
+
+#data-preview .olFramedCloudPopupContent table tr:nth-child(even) {
+     background-color: #fff;
+ }
+
+#data-preview .olFramedCloudPopupContent table tr:nth-child(odd) {
+     background-color: #eee;
+ }
+ #data-preview .olFramedCloudPopupContent th {
+	 font-size: 120%;
+	 text-align: center;
+ }
+
+div.olControlZoom {
+   position: absolute;
+   top: 20px;
+   left: 70px;
+   background: #FFF;
+   border-radius: 0;
+   padding: 0;
+   box-shadow: 5px 5px 10px rgba(128,128,128,0.31);
+}
+
+div.olControlZoom a{
+   display: inline-block;
+   margin: 0;
+   width: 40px;
+   height: 40px;
+   color: #000;
+   font-family: inherit;
+   font-size: 25px;
+   line-height: 40px;
+   text-decoration: none;
+   text-align: center;
+   background: rgb(255,255,255);
+   
+}
+
+div.olControlZoom a:hover{
+   background: rgb(0,178,169);
+}
+
+a.olControlZoomIn {
+   border-radius: 0;
+}
+a.olControlZoomIn:after {
+   content: "";
+   position: absolute;
+   left: 0;
+   bottom: 7px;
+   height: 25px;
+   width: 50%;
+   border-right: 0.5px solid rgb(228,228,228);
+}
+a.olControlZoomOut {
+   border-radius: 0;
+}
+
+div#OpenLayers_Control_MaximizeDiv:after, div#OpenLayers_Control_MinimizeDiv:after{
+   font-family: FontAwesome;
+   content: "\f013";  
+   font-size: 27px;
+   text-align: center;
+   line-height: 41px;
+   width: 40px; 
+}
+
+#data-preview .olControlLayerSwitcher {
+   top: 70px;
+   left: 20px;
+   margin: 0;
+   border: 0;
+   box-shadow: 5px 5px 10px rgba(128,128,128,0.31);
+   
+}
+
+#data-preview .olControlLayerSwitcher .layersDiv:after {
+   bottom:100%;
+   left: 20px;
+   border: solid rgba(255,255,255,0);
+   content: " ";
+   height: 0;
+   width: 0;
+   position: absolute;
+   border-color: rgba(255,255,255,0);
+   border-bottom-color: #fff;
+   border-width: 8px;
+   margin-left: -8px;
+   z-index: 1100;
+   
+}
+
+#data-preview .olControlLayerSwitcher .layersDiv{
+   background: #fff;
+  
+}
+
+.olControlLayerSwitcher .maximizeDiv, .olControlLayerSwitcher .minimizeDiv{
+   width: 40px;
+   height: 40px;
+   top: -50px;
+   left: 0;
+   background: #fff;
+   box-shadow: 5px 5px 10px rgba(128,128,128,0.31);
+   text-align: center;
+   color: #000;
+}
+
+.olControlLayerSwitcher .maximizeDiv:hover, .olControlLayerSwitcher .minimizeDiv:hover{
+   background: rgb(0,178,169);
+   color: #fff;
+}
+
+#OpenLayers_Control_MaximizeDiv_innerImage,#OpenLayers_Control_MinimizeDiv_innerImage{
+   display: none;
+}
+
+#
+/* ----               END               ----  */
+

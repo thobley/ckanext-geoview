@@ -126,6 +126,8 @@
             },
             'geojson': function (resource, proxyUrl, proxyServiceUrl, layerProcessor) {
                 var url = proxyUrl || resource.url;
+                //var url = resource.url;
+		//console.log(url);
                 layerProcessor(OL_HELPERS.createGeoJSONLayer(url));
             },
             'wfs': function(resource, proxyUrl, proxyServiceUrl, layerProcessor) {
@@ -197,11 +199,30 @@
                 }
 
                 this.map.addLayer(resourceLayer)
+               
+                // DELWP added loading gif for so the user knows something is happening - especially for long WFS loads                
+                resourceLayer.events.register("loadstart",resourceLayer, function(){
+                   var loadgif = jQuery('<img id="loadgif" src="http://'+window.location.hostname+'/img/loading.gif"/>');
+                   loadgif.css({
+                              "position": "absolute",
+                              "bottom": "0",
+                              "left": "0",
+                              "z-index": 10000
+                           });
 
+                   loadgif.appendTo("#map");
+                });
+                var that = this;
                 var bbox = resourceLayer.getDataExtent && resourceLayer.getDataExtent()
                 if (bbox) {
                     if (this.map.getExtent()) this.map.getExtent().extend(bbox)
                     else this.map.zoomToExtent(bbox)
+               
+                    // DELWP remove load gif
+                    resourceLayer.events.register("loadend",resourceLayer, function(e){
+                        jQuery("#loadgif").remove();
+                        that._addWarning(e);
+                    });
                 }
                 else {
                     var firstExtent = false
@@ -209,6 +230,9 @@
                         "loadend",
                         resourceLayer,
                         function (e) {
+                                                   
+                            jQuery("#loadgif").remove(); // DELWP remove load gif
+                            that._addWarning(e); // DELWP add warning if the wfs load fails
                             if (!firstExtent) {
                                 var bbox = e && e.object && e.object.getDataExtent && e.object.getDataExtent()
                                 if (bbox)
@@ -220,6 +244,42 @@
                             }
                         })
                 }
+
+            },
+            // DELWP: Warning for content to large to be proxied 
+            _addWarning: function(e){
+               console.log(e);
+               
+               if(e.response && e.response.code == 0){
+                           var string = "GeoJSON or KML";
+                           var start = e.response.priv.responseText.indexOf("Content-Length: ");
+                           var end = e.response.priv.responseText.indexOf(".",start);
+                           var contentLength = parseInt(e.response.priv.responseText.substring(start+"Content-Length: ".length,end));
+                           var warnbox = jQuery('<div id="mapWarnBox"></div>');
+                           var wfswarn  = "Sorry, the features requested were over the 3MB limit, they were "+(contentLength/(1024*1024)).toFixed(1)+"MB, <i>zoom in</i> to restrict the amount features returned, or try the WMS preview.";
+                           var filewarn = "Sorry, the file requested was over the 3MB limit, it was "+(contentLength/(1024*1024)).toFixed(1)+"MB, this file cannot be previewed on the map. Try the WMS preview.";
+                           var isFile = ("GeoJSON or KML".indexOf(e.object.name) >= 0) ? true : false ;
+                           //console.log(isFile,e.object.name);
+                           warnbox.html(isFile ? filewarn : wfswarn);
+                           warnbox.css({ //DELWP add css on the fly, better than creating more code in other places
+                              "position": "absolute",
+                              "margin": "auto",
+                              "top": "30%",
+                              "left": "50%",
+                              "width": "30%",
+                              "height": "15%",
+                              "background-color": "rgba(0,0,0,0.5)",
+                              "z-index": 10000,
+                              "transform": "translate(-50%)",
+                              "font-family": "Arial",
+                              "font-weight": "bold",
+                              "text-align": "center",
+                              "color": "#fff",
+                              "padding": "5px"
+                           });
+                           warnbox.appendTo("#map").delay(isFile ? 15000 : 6000).fadeOut(500,function(){this.remove()});
+                        }
+
 
             },
 
@@ -266,6 +326,27 @@
                         attribution: mapConfig.attribution
                     });
                 } else if (mapConfig.type == 'vicmapapi512'){
+			/* VICMAPAPI WMS 512  */
+			/*	
+			var url = "http://api.maps.vic.gov.au/geowebcacheWM/service/wms";
+			baseMapLayer = new OpenLayers.Layer.WMS("VicmapAPI WMS",url,{
+			   // url : url,
+			   // name: "VicmapAPI WMS",
+			    layers : "WEB_MERCATOR",
+			   // div: "map",
+			    format: "image/png",
+			   // tiled: true,
+			    style: '',
+			   // isBaseLayer: true,
+			   // opacity: 1,
+			   // maxExtent: new OpenLayers.Bounds(-20037508.34,-20037508.34,20037508.34,20037508.34),
+			   // attribution: "Vicmap API © 2015 State Government of Victoria | <a href='http://api.maps.vic.gov.au/vicmapapi/Copyright.jsp' target='_blank' style='color:#4BABFA;'>Copyright and Disclaimer</a> " 
+			},{
+			   isBaseLayer : true 
+			});	
+			*/			
+			/* VICMAPAPI WMTS 512 */
+                        
 					var matrixids = new Array(19);
 					for (var i = 0; i <= 18; ++i) {
 						matrixids[i] = "EPSG:3857_WEB_MERCATOR:" + i;
@@ -306,13 +387,15 @@
                         style: "_null",
                         opacity: 1,
                         isBaseLayer: true,
-						//tileOrigin: [20037508.34,-20037508.34],
-                        //maxExtent: [15194443.512656,-5019271.93739,18053007.294871,-3575661.6116429],
+			tileFullExtent: new OpenLayers.Bounds(15359931,-6164655,17252630,-3765811),
                         maxExtent: new OpenLayers.Bounds(-20037508.34,-20037508.34,20037508.34,20037508.34),
-						attribution: "Vicmap API © 2015 State Government of Victoria | <a href='http://api.maps.vic.gov.au/vicmapapi/Copyright.jsp' target='_blank' style='color:#4BABFA;'>Copyright and Disclaimer</a> " 
+						attribution: this.options.map_config.attribution
 					});
 					//baseMapLayer.projection = baseMapLayer.projection;
 					baseMapLayer.setTileSize(new OpenLayers.Size(512,512));
+			
+
+					
 				} else {
                     // MapQuest OpenStreetMap base map
                     if (isHttps) {
@@ -342,28 +425,28 @@
                 // gather options and config for this view
                 var proxyUrl = this.options.proxy_url;
                 var proxyServiceUrl = this.options.proxy_service_url;
-
                 if (this.options.resourceView)
                     $_.extend(ckan.geoview, JSON.parse(this.options.resourceView))
 
                 ckan.geoview.gapi_key = this.options.gapi_key;
 
                 // Choose base map based on CKAN wide config
-				var clearBaseLayer = new OpenLayers.Layer.OSM("None", this.options.site_url + "img/blank.gif", {isBaseLayer: true, attribution: ''});
+		//var clearBaseLayer = new OpenLayers.Layer.OSM("None", this.options.site_url + "img/blank.gif", {isBaseLayer: true, attribution: ''});
+		var clearBaseLayer = new OpenLayers.Layer.OSM("None", "http://"+window.location.hostname+"/img/blank.gif", {isBaseLayer: true, attribution: ''});
+		
                 var baseMapLayer = this._commonBaseLayer(this.options.map_config);
-				baseMapLayer.projection = clearBaseLayer.projection;
-				baseMapLayer.tileOrigin = clearBaseLayer.tileOrigin;
+				baseMapLayer.projection = clearBaseLayer.projection; // DELWP use the projection from here, the clear layer will be overwritten
+			//	baseMapLayer.tileOrigin = clearBaseLayer.tileOrigin;
 				
-				console.log(baseMapLayer);
-				console.log(clearBaseLayer);
-                //var clearBaseLayer = new OpenLayers.Layer.OSM("None", this.options.site_url + "img/blank.gif", {isBaseLayer: true, attribution: ''});
-
+               
                 var mapDiv = $("<div></div>").attr("id", "map").addClass("map")
                 var info = $("<div></div>").attr("id", "info")
                 mapDiv.append(info)
-
+                clearBaseLayer = new OpenLayers.Layer("None",{isBaseLayer: true,opacity: 0.5});  //DELWP overwrite the clear layer with one that works
+                clearBaseLayer.projection = baseMapLayer.projection; // DELWP now steal the basemap layers projection
                 $("#data-preview").empty()
                 $("#data-preview").append(mapDiv)
+          	//$(".olControlAttribution").css("font-family","Arial")
 
                 info.tooltip({
                     animation: false,
@@ -376,15 +459,17 @@
 				
 
                 var eventListeners;
-				console.log(this.options);
+			//	console.log(this.options);
+			//	console.log(ckan.geoview);
 				var that = this;
+		
                 if ( (ckan.geoview && 'feature_hoveron' in ckan.geoview) ? ckan.geoview['feature_hoveron'] : this.options.ol_config.default_feature_hoveron)
                     eventListeners = {
                     featureover: function (e) {
                         e.feature.renderIntent = "select";
                         e.feature.layer.drawFeature(e.feature);
-                        var pixel = event.xy
-                      /* info.css({
+                        //var pixel = event.xy
+                      /* info.css({  // DELWP remove this and repalce with one that works, and will work for every dataset
                            left: (pixel.x + 10) + 'px',
                             top: (pixel.y - 15) + 'px'
                         });
@@ -418,10 +503,11 @@
 						var feature = e.feature;
 						var html = function(feature){
 							//var heading = "<h2>"+feature.fid+"</h2>";
-							console.log(that.map);
+							//console.log(that.map);
 							var atts;
+                                                        var layertitle = feature.layer.title || feature.layer.name;
 							if(feature.attributes){
-								atts = "<table><th colspan='2'>"+feature.layer.title+"</th>"
+								atts = "<table style='width: 95%'><th colspan='2'>"+ layertitle +"</th>"
 								
 								for (var att in feature.attributes){
 									console.log(feature.attributes[att]);
@@ -431,14 +517,19 @@
 							}
 							console.log(atts);
 							return "<div style='font-family: Arial'>"+atts+"</div>";
-						}
-						 var popup = new OpenLayers.Popup.FramedCloud("pops", 
-							that.map.getLonLatFromPixel(event.xy),
+						};
+                                                console.log(window);
+                                                // console.log(event || e.object.events.click[1].obj.evt);
+                                                //console.log('event' in window ? 'YES' : 'NO' );
+                                                var ev = 'event' in window ? event : e.object.events.listeners.click[1].obj.evt;
+						var popup = new OpenLayers.Popup.FramedCloud("pops",
+							that.map.getLonLatFromPixel(ev.xy),
 							null,
 							true,
 							null
 						);
 						popup.autoSize = false,
+                                               // popup.maxSize = new OpenLayers.Size({h:260});
 					    //popup.setSize = new OpenLayers.Size(400,800);
 						popup.fixedRelativePosition = true;
 						popup.closeOnMove = true;
@@ -449,25 +540,27 @@
                     }
                 }
 				//this.map.addEventListener = eventListeners;
-                OpenLayers.ImgPath = this.options.site_url + 'js/vendor/openlayers2/img/';
+               // OpenLayers.ImgPath = this.options.site_url + 'js/vendor/openlayers2/img/';
 
                 
 
                 layerSwitcher = new OpenLayers.Control.CKANLayerSwitcher()
-				
+		console.log(layerSwitcher);		
 				this.map = new OpenLayers.Map(
                     {
                         div: "map",
-                        theme: this.options.site_url + "js/vendor/openlayers2/theme/default/style.css",
+                       // theme: this.options.site_url + "js/vendor/openlayers2/theme/default/style.css",
                         layers: [baseMapLayer, clearBaseLayer],
                         maxExtent: baseMapLayer.getMaxExtent(),
                         eventListeners: eventListeners,
+  			numZoomLevels: 19
 						//restrictedExtent: new OpenLayers.Bounds(15663808,-4760130,16712820,-4017007)
                         //projection: OL_HELPERS.Mercator, // this is needed for WMS layers (most only accept 3857), but causes WFS to fail
                     });
 
                 this.map.addControl(layerSwitcher);
-
+    
+		console.log(this.map)
                 var bboxFrag;
                 var fragMap = OL_HELPERS.parseKVP((window.parent || window).location.hash && (window.parent || window).location.hash.substring(1));
 
@@ -480,13 +573,14 @@
                 var proxyServiceUrl = this.options.proxy_service_url;
 
                 ckan.geoview.googleApiKey = this.options.gapi_key;
+                //console.log(this.options);
 
 
                 withLayers(preload_resource, proxyUrl, proxyServiceUrl, $_.bind(this.addLayer, this));
 
                 // Expand layer switcher by default
-                layerSwitcher.maximizeControl();
-
+               // layerSwitcher.maximizeControl();
+		$(".olControlAttribution").css("font-family","Arial")
             }
         }
     });

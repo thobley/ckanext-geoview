@@ -305,16 +305,51 @@
                         ver,
                         function (descr) {
                             if (descr.featureTypes) {
+				if (!String.prototype.startsWith){
+   				    String.prototype.startsWith = function(str,position){
+                                        position = position || 0;
+                                        return this.indexOf(str, position) === position;
+                                    }
+                                }
                                 var geomProps = descr.featureTypes[0].properties.filter(function (prop) {
                                     return prop.type.startsWith("gml")
                                 })
-
+                                
                                 // ignore feature types with no gml prop. Correct ?
                                 if (geomProps && geomProps.length > 0) {
+                                    // DELWP Change Feature colour at random /////
+                                    var randomcolor = "#"+Math.floor(Math.random()*16777215).toString(16);
+                                    var newStyle = new OpenLayers.StyleMap({
+                                        "default": new OpenLayers.Style({
+                                                      // fillColor: '${getColor}',
+                                                       fillColor: "#201547",
+                                                       fillOpacity: 0.5,
+					              // strokeColor:'${getColor}',  // "#"+Math.floor(Math.random()*16777215).toString(16),
+					              strokeColor: "#201547",
+                                                       strokeWidth: 1.5,
+                                                       pointRadius: 6
+                                                   },
+                                                   {
+                                                      context: {
+                                                         getColor: function(feature){
+                                                           // colsole.log("IN GET COLOUR FUNCTION",feature);
+                                                            return "#"+Math.floor(Math.random()*16777215).toString(16);
+                                                         }
+                                                      }
+                                                   }),
+                                        "select": new OpenLayers.Style({
+                                                       fillColor: "#00B2A9",
+                                                       fillOpacity: 0.7,
+                                                       strokeColor: "#00B2A9",
+                                                       strokeWidth: 2,
+                                                       pointRadius: 6
+                                                   }),
+                                  //  END    ///
 
+                                    });
                                     var ftLayer = new OpenLayers.Layer.WFSLayer(
                                         candidate.name, {
-                                            //style: default_style,
+                                            styleMap: newStyle,
                                             ftDescr: candidate,
                                             title: candidate.title,
                                             strategies: [new OpenLayers.Strategy.BBOXWithMax({maxFeatures: MAX_FEATURES, ratio: 1})],
@@ -331,7 +366,7 @@
                                                 geometryName: geomProps[0].name
                                             })
                                         })
-
+				    console.log(ftLayer);
                                     layerProcessor(ftLayer)
                                 }
                             }
